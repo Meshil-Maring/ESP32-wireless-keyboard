@@ -59,7 +59,7 @@ Do not change unless fixing a bug.
 
 ### Phase 2 - Keyboard Engine
 
-Status: In progress
+Status: Complete
 
 Milestones:
 
@@ -88,8 +88,10 @@ Milestones:
    - Test note: pressing the physical test button should send Shift+A, Ctrl+Enter, and Alt+Tab to the host one step at a time.
 7. Multiple simultaneous keys
    - 6-key rollover and modifier combinations
+   - Implemented: a public pressMany() helper and a button-driven rollover/combo test step
 8. Stress testing
    - Repeated typing, reconnects, rapid key changes
+   - Implemented: repeated typing and rapid key-change test steps in the main sketch
 
 ### Phase 3 - Keyboard Matrix
 

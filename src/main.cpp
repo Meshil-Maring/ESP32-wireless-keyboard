@@ -38,9 +38,55 @@ void loopTest()
     keyboard.release(KEY_TAB);
     keyboard.release(KEY_LEFT_ALT);
     break;
+
+  case 3:
+    Serial.println("Simultaneous combo: Ctrl + Shift + Enter");
+    {
+      const uint8_t combo[] = {KEY_LEFT_CTRL, KEY_LEFT_SHIFT, KEY_ENTER};
+      keyboard.pressMany(combo, 3);
+      delay(20);
+      keyboard.release(KEY_ENTER);
+      keyboard.release(KEY_LEFT_SHIFT);
+      keyboard.release(KEY_LEFT_CTRL);
+    }
+    break;
+
+  case 4:
+    Serial.println("6-key rollover demo: a s d f g h");
+    {
+      const uint8_t rollover[] = {'a', 's', 'd', 'f', 'g', 'h'};
+      keyboard.pressMany(rollover, 6);
+      delay(20);
+      for (size_t i = 0; i < 6; ++i)
+      {
+        keyboard.release(rollover[i]);
+      }
+    }
+    break;
+
+  case 5:
+    Serial.println("Stress typing burst");
+    for (int i = 0; i < 10; ++i)
+    {
+      keyboard.print("abc ");
+      delay(5);
+    }
+    break;
+
+  case 6:
+    Serial.println("Rapid key changes");
+    for (int i = 0; i < 20; ++i)
+    {
+      keyboard.press(KEY_LEFT_SHIFT);
+      keyboard.press('a');
+      keyboard.release('a');
+      keyboard.release(KEY_LEFT_SHIFT);
+      delay(2);
+    }
+    break;
   }
 
-  test = (test + 1) % 3;
+  test = (test + 1) % 7;
 }
 
 void setup()

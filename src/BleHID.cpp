@@ -92,6 +92,20 @@ bool BleHID::pressModifier(uint8_t modifier)
     return true;
 }
 
+bool BleHID::pressMany(const uint8_t *keys, size_t count)
+{
+    if (keys == nullptr || count == 0)
+        return false;
+
+    for (size_t i = 0; i < count; ++i)
+    {
+        if (!press(keys[i]))
+            return false;
+    }
+
+    return true;
+}
+
 bool BleHID::releaseModifier(uint8_t modifier)
 {
     setModifierState(modifier, false);

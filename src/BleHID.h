@@ -54,6 +54,7 @@ public:
 
     bool press(uint8_t key);
     bool release(uint8_t key);
+    bool pressMany(const uint8_t *keys, size_t count);
     bool pressModifier(uint8_t modifier);
     bool releaseModifier(uint8_t modifier);
     bool pressCombo(uint8_t modifier, uint8_t key);
