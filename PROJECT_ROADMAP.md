@@ -82,8 +82,10 @@ Milestones:
 5. Typing engine
    - print()
    - println()
+   - Test note: when connected, pressing the physical test button should send Enter, Shift+A, and Ctrl+Enter to the host. If these actions appear in a text field, the milestone is working.
 6. Modifier keys
    - Shift, Ctrl, Alt, GUI
+   - Test note: pressing the physical test button should send Shift+A, Ctrl+Enter, and Alt+Tab to the host one step at a time.
 7. Multiple simultaneous keys
    - 6-key rollover and modifier combinations
 8. Stress testing
@@ -146,8 +148,9 @@ Planned:
 3. Describe the expected architecture change.
 4. Apply minimal code changes.
 5. Compile and verify.
-6. Test the result.
-7. Continue only after successful verification.
+6. Run the milestone test from the firmware.
+7. Record the result in the roadmap and main sketch.
+8. Continue only after successful verification.
 
 ## Notes
 

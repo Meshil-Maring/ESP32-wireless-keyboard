@@ -6,6 +6,10 @@
 #include <HIDTypes.h>
 #include <HIDKeyboardTypes.h>
 
+#include "blehid/BleServerCallbacks.h"
+#include "blehid/KeyTranslator.h"
+#include "blehid/ReportBuilder.h"
+
 static const uint8_t HID_REPORT_MAP[] = {
     0x05, 0x01, // Usage Page (Generic Desktop)
     0x09, 0x06, // Usage (Keyboard)
@@ -56,244 +60,6 @@ static const uint8_t HID_REPORT_MAP[] = {
 
     0xC0};
 
-// Left Shift modifier bit, as used in the keyboard input report
-// (byte 0 of the report — see HID_REPORT_MAP above).
-static const uint8_t KEYBOARD_LEFT_SHIFT = 0x02;
-
-// Translates one ASCII character into the USB HID keycode (and, if
-// needed, the modifier bits) that produce it on a US keyboard layout.
-// Returns false for characters with no direct single-key mapping.
-static bool asciiToHid(uint8_t ascii, uint8_t &modifier, uint8_t &keycode)
-{
-    modifier = 0;
-    keycode = 0;
-
-    if (ascii >= 'a' && ascii <= 'z')
-    {
-        keycode = 0x04 + (ascii - 'a');
-    }
-    else if (ascii >= 'A' && ascii <= 'Z')
-    {
-        keycode = 0x04 + (ascii - 'A');
-        modifier = KEYBOARD_LEFT_SHIFT;
-    }
-    else if (ascii >= '1' && ascii <= '9')
-    {
-        keycode = 0x1E + (ascii - '1');
-    }
-    else
-    {
-        switch (ascii)
-        {
-        case '0':
-            keycode = 0x27;
-            break;
-        case '\n':
-            keycode = 0x28;
-            break; // Enter
-        case '\r':
-            keycode = 0x28;
-            break; // Enter
-        case 0x1B:
-            keycode = 0x29;
-            break; // Escape
-        case '\b':
-            keycode = 0x2A;
-            break; // Backspace
-        case '\t':
-            keycode = 0x2B;
-            break; // Tab
-        case ' ':
-            keycode = 0x2C;
-            break; // Space
-
-        case '-':
-            keycode = 0x2D;
-            break;
-        case '_':
-            keycode = 0x2D;
-            modifier = KEYBOARD_LEFT_SHIFT;
-            break;
-        case '=':
-            keycode = 0x2E;
-            break;
-        case '+':
-            keycode = 0x2E;
-            modifier = KEYBOARD_LEFT_SHIFT;
-            break;
-        case '[':
-            keycode = 0x2F;
-            break;
-        case '{':
-            keycode = 0x2F;
-            modifier = KEYBOARD_LEFT_SHIFT;
-            break;
-        case ']':
-            keycode = 0x30;
-            break;
-        case '}':
-            keycode = 0x30;
-            modifier = KEYBOARD_LEFT_SHIFT;
-            break;
-        case '\\':
-            keycode = 0x31;
-            break;
-        case '|':
-            keycode = 0x31;
-            modifier = KEYBOARD_LEFT_SHIFT;
-            break;
-        case ';':
-            keycode = 0x33;
-            break;
-        case ':':
-            keycode = 0x33;
-            modifier = KEYBOARD_LEFT_SHIFT;
-            break;
-        case '\'':
-            keycode = 0x34;
-            break;
-        case '"':
-            keycode = 0x34;
-            modifier = KEYBOARD_LEFT_SHIFT;
-            break;
-        case '`':
-            keycode = 0x35;
-            break;
-        case '~':
-            keycode = 0x35;
-            modifier = KEYBOARD_LEFT_SHIFT;
-            break;
-        case ',':
-            keycode = 0x36;
-            break;
-        case '<':
-            keycode = 0x36;
-            modifier = KEYBOARD_LEFT_SHIFT;
-            break;
-        case '.':
-            keycode = 0x37;
-            break;
-        case '>':
-            keycode = 0x37;
-            modifier = KEYBOARD_LEFT_SHIFT;
-            break;
-        case '/':
-            keycode = 0x38;
-            break;
-        case '?':
-            keycode = 0x38;
-            modifier = KEYBOARD_LEFT_SHIFT;
-            break;
-
-        case '!':
-            keycode = 0x1E;
-            modifier = KEYBOARD_LEFT_SHIFT;
-            break; // Shift+1
-        case '@':
-            keycode = 0x1F;
-            modifier = KEYBOARD_LEFT_SHIFT;
-            break; // Shift+2
-        case '#':
-            keycode = 0x20;
-            modifier = KEYBOARD_LEFT_SHIFT;
-            break; // Shift+3
-        case '$':
-            keycode = 0x21;
-            modifier = KEYBOARD_LEFT_SHIFT;
-            break; // Shift+4
-        case '%':
-            keycode = 0x22;
-            modifier = KEYBOARD_LEFT_SHIFT;
-            break; // Shift+5
-        case '^':
-            keycode = 0x23;
-            modifier = KEYBOARD_LEFT_SHIFT;
-            break; // Shift+6
-        case '&':
-            keycode = 0x24;
-            modifier = KEYBOARD_LEFT_SHIFT;
-            break; // Shift+7
-        case '*':
-            keycode = 0x25;
-            modifier = KEYBOARD_LEFT_SHIFT;
-            break; // Shift+8
-        case '(':
-            keycode = 0x26;
-            modifier = KEYBOARD_LEFT_SHIFT;
-            break; // Shift+9
-        case ')':
-            keycode = 0x27;
-            modifier = KEYBOARD_LEFT_SHIFT;
-            break; // Shift+0
-
-        default:
-            return false; // unsupported character
-        }
-    }
-
-    return true;
-}
-
-class BleServerCallbacks : public NimBLEServerCallbacks
-{
-public:
-    explicit BleServerCallbacks(BleHID &hid)
-        : m_hid(hid)
-    {
-    }
-
-    void onConnect(NimBLEServer *server,
-                   NimBLEConnInfo &connInfo) override
-    {
-        (void)server;
-
-        m_hid.m_connected = true;
-
-        Serial.println("BLE Connected");
-
-        // HID input reports must go over an encrypted/bonded link.
-        // Ask for it immediately instead of waiting for the host -
-        // without this, some hosts connect, fail the security
-        // handshake, and disconnect in an endless loop.
-        NimBLEDevice::startSecurity(connInfo.getConnHandle());
-    }
-
-    void onDisconnect(NimBLEServer *server,
-                      NimBLEConnInfo &,
-                      int reason) override
-    {
-        (void)server;
-
-        m_hid.m_connected = false;
-
-        Serial.print("BLE Disconnected. Reason: ");
-        Serial.println(reason);
-
-        if (server != nullptr)
-        {
-            server->startAdvertising();
-        }
-    }
-
-    void onAuthenticationComplete(NimBLEConnInfo &connInfo) override
-    {
-        if (!connInfo.isEncrypted())
-        {
-            // Pairing/bonding failed - drop it cleanly instead of
-            // leaving a half-working connection that will just
-            // flap on and off.
-            Serial.println("Pairing/bonding failed - disconnecting.");
-            NimBLEDevice::getServer()->disconnect(connInfo.getConnHandle());
-            return;
-        }
-
-        Serial.println("Bonded and link encrypted successfully.");
-    }
-
-private:
-    BleHID &m_hid;
-};
-
 BleHID::BleHID()
     : server(nullptr),
       hid(nullptr),
@@ -330,6 +96,18 @@ bool BleHID::releaseModifier(uint8_t modifier)
 {
     setModifierState(modifier, false);
     return true;
+}
+
+bool BleHID::pressCombo(uint8_t modifier, uint8_t key)
+{
+    if (modifier != 0)
+    {
+        pressModifier(modifier);
+    }
+
+    const bool result = press(key);
+
+    return result;
 }
 
 bool BleHID::begin(const char *deviceName)
@@ -404,14 +182,7 @@ void BleHID::sendReport()
         return;
 
     uint8_t report[8] = {0};
-
-    report[0] = m_report.modifiers;
-    report[1] = m_report.reserved;
-
-    for (uint8_t i = 0; i < 6; ++i)
-    {
-        report[2 + i] = m_report.keys[i];
-    }
+    buildReport(m_report, report, sizeof(report));
 
     inputReport->setValue(report, sizeof(report));
     inputReport->notify();
@@ -672,4 +443,9 @@ size_t BleHID::println(const char *text)
     write('\n');
 
     return count + 2;
+}
+
+size_t BleHID::println()
+{
+    return println("");
 }

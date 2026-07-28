@@ -56,10 +56,12 @@ public:
     bool release(uint8_t key);
     bool pressModifier(uint8_t modifier);
     bool releaseModifier(uint8_t modifier);
+    bool pressCombo(uint8_t modifier, uint8_t key);
 
     size_t write(uint8_t character);
     size_t print(const char *text);
     size_t println(const char *text);
+    size_t println();
 };
 
 #endif
