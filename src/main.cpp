@@ -1,12 +1,39 @@
 #include "BleHID.h"
+#include "KeyboardMatrix.h"
+#include "KeyboardLayout.h"
 #include <Arduino.h>
 
 BleHID keyboard;
+KeyboardMatrix matrix;
 
 constexpr uint8_t BUTTON_PIN = 4;
 
 uint8_t test = 0;
 bool lastButton = HIGH;
+
+void onMatrixKeyChange(uint8_t row, uint8_t col, bool pressed)
+{
+  uint8_t key = keycodeFromMatrix(row, col);
+
+  if (key == 0)
+    return;
+
+  Serial.print("Matrix key ");
+  Serial.print(row);
+  Serial.print(",");
+  Serial.print(col);
+  Serial.print(pressed ? " pressed -> " : " released -> ");
+  Serial.println((char)key);
+
+  if (pressed)
+  {
+    keyboard.press(key);
+  }
+  else
+  {
+    keyboard.release(key);
+  }
+}
 
 void loopTest()
 {
@@ -93,11 +120,22 @@ void setup()
 {
   Serial.begin(115200);
   pinMode(BUTTON_PIN, INPUT_PULLUP);
+  matrix.begin();
+  matrix.setKeyChangeCallback(onMatrixKeyChange);
   keyboard.begin("ESP32 Keyboard");
 }
 
 void loop()
 {
+  matrix.scan();
+
+  if (matrix.changed())
+  {
+    Serial.println("Matrix state changed:");
+    matrix.printState();
+    Serial.println();
+  }
+
   bool pressed = digitalRead(BUTTON_PIN) == LOW;
 
   if (pressed && lastButton && keyboard.isConnected())

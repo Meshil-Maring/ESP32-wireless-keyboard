@@ -95,12 +95,53 @@ Milestones:
 
 ### Phase 3 - Keyboard Matrix
 
-Planned:
+Status: Complete
 
-- GPIO scanning
-- Debouncing
-- Ghost detection
-- Key mapping
+Completed:
+
+- GPIO row/column scanning
+- Per-key debounce state machine
+- Ghost detection and rollover behavior
+- Matrix key position to HID keycode mapping
+- Integration with the existing BleHID press/release API
+- Minimal hardware abstraction for future row/column sizes
+
+Phase 3 architecture:
+
+- Create a dedicated matrix scanner module (e.g. `KeyboardMatrix`) separate from HID logic.
+- Define matrix hardware in one place with row pins, column pins, and keymap data.
+- Scan rows by driving one row low/high at a time and reading column inputs.
+- Use a small debounce tracker per key to stabilize presses/releases before emitting HID events.
+- Detect ghosted combinations and avoid sending invalid simultaneous key reports.
+- Translate stable matrix coordinates into HID usage codes via a lookup table.
+- Keep the existing `BleHID` API unchanged; feed key events through `press()`, `release()`, and `releaseAll()`.
+
+Milestones:
+
+1. Matrix config and pin definitions
+   - Define row/column pins and key positions.
+   - Keep config hardware-agnostic for future board versions.
+2. Basic scanning engine
+   - Implement row strobes and column reads.
+   - Report raw matrix activity without debounce.
+3. Debounce and stable key state
+   - Add per-key timing to suppress bounce.
+   - Require a stable scan count before changing state.
+4. Key mapping and HID translation
+   - Map matrix positions to HID codes.
+   - Use the existing ASCII/HID translation helpers for normal keys.
+5. Ghost handling / rollover behavior
+   - Detect unsupported ghost combinations and avoid invalid reports.
+   - Document that physical diodes are expected for safe NKRO.
+6. Integration test
+   - Wire matrix logic into `main.cpp`.
+   - Preserve current button test path until matrix scanning is validated.
+
+Immediate next step:
+
+- Draft the `KeyboardMatrix` module and the first scan loop.
+- Keep changes small and compile after the scanner module is added.
+- Verify with a simple matrix detection test before adding HID output.
 
 ### Phase 4 - Media Keys
 
